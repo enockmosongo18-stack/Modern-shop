@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MODERN SUPERNET SHOP</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{display:['"Baloo 2"','system-ui','sans-serif'],sans:['"Nunito Sans"','system-ui','sans-serif']},colors:{brand:{50:'#ecfdf3',100:'#d1fae0',200:'#a7f0c4',300:'#6ee7a0',400:'#34d17a',500:'#12a55a',600:'#0b8a49',700:'#086b3a',800:'#064e2b',900:'#04361e'},sun:{300:'#ffd35c',400:'#ffc233',500:'#ffb000',600:'#e69500'},chili:{500:'#e63946',600:'#c92a37'}}}}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body class="bg-brand-50">
+<div id="root"><p style="padding:2rem;font-family:sans-serif;color:#475569">Loading shop…</p></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { alert("Storage is full - remove some photos."); } };
+const fmtTime = t => { const [h, m] = t.split(":").map(Number); return ((h + 11) % 12 + 1) + ":" + String(m).padStart(2, "0") + (h < 12 ? " AM" : " PM"); };
+const readImg = file => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 640 / Math.max(im.width, im.height)); const c = document.createElement("canvas"); c.width = im.width * k; c.height = im.height * k; c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", 0.8)); }; im.src = r.result; }; r.readAsDataURL(file); });
+const U = id => "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&q=70&w=500";
+const DEFAULT_SETTINGS = { phone: "254700000000", mpesa: "254700000000", mpesaName: "Modern Supernet Shop", days: "Mon - Sat", open: "07:00", close: "21:00", banners: [U("1604719312566-8912e9227c6a"), U("1542838132-92c53300491e"), U("1578916171728-46686eac8d58"), U("1534723452862-4c874018d66d")] };
+const DEFAULT_CATS = ["Groceries", "Fresh Produce", "Dairy & Eggs", "Bakery", "Meat & Fish", "Beverages", "Spices", "Household", "Kitchenware", "Health & Beauty", "Baby Care", "Electronics", "Phones & Accessories", "Clothing", "Shoes", "Stationery", "Hardware", "Toys"];
+
+const P = {
+  bag:"M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0",
+  lock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+  unlock:"M5 11h14v10H5zM8 11V7a4 4 0 0 1 7.5-2",
+  camera:"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
+  plus:"M12 5v14M5 12h14",
+  search:"M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM21 21l-4.3-4.3",
+  phone:"M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z",
+  pin:"M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0ZM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
+  clock:"M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM12 6v6l4 2",
+  x:"M18 6 6 18M6 6l12 12",
+  key:"M21 2l-9.6 9.6M15.5 7.5l3 3L22 7l-3-3M7.5 21a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11",
+  msg:"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z",
+  send:"m22 2-7 20-4-9-9-4ZM22 2 11 13",
+  alert:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"
+};
+const Icon = ({ n, className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={P[n]} /></svg>
+);
+
+const INITIAL_PRODUCTS = [
+  { id: 1, name: "Maize Flour (Ungi ya Dawa) 2kg", price: 180, category: "Groceries", emoji: "🌽", image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&q=80&w=400" },
+  { id: 2, name: "Pure Cooking Oil 1 Litre", price: 260, category: "Groceries", emoji: "🛢️", image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=400" },
+  { id: 3, name: "Bar Soap (White) 1pc", price: 110, category: "Household", emoji: "🧼", image: "https://images.unsplash.com/photo-1607006482602-50b698807d9c?auto=format&fit=crop&q=80&w=400" },
+  { id: 4, name: "Premium Tea Leaves 250g", price: 95, category: "Beverages", emoji: "🍵", image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=400" },
+  { id: 5, name: "Refined Sugar 1kg", price: 160, category: "Groceries", emoji: "🍬", image: "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?auto=format&fit=crop&q=80&w=400" },
+  { id: 6, name: "Royco Mchuzi Mix 200g", price: 75, category: "Spices", emoji: "🧂", image: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400" }
+];
+
+function ProductImg({ p }) {
+  const [bad, setBad] = useState(false);
+  if (bad || !p.image) {
+    return <div className="w-full h-full flex items-center justify-center text-6xl bg-gradient-to-br from-brand-50 to-brand-100">{p.emoji}</div>;
+  }
+  return <img src={p.image} alt={p.name} onError={() => setBad(true)} className="w-full h-full object-cover" />;
+}
+
+function App() {
+  const [products, setProducts] = useState(() => load("ms_products", INITIAL_PRODUCTS));
+  const [settings, setSettings] = useState(() => ({ ...DEFAULT_SETTINGS, ...load("ms_settings", {}) }));
+  const [cats, setCats] = useState(() => load("ms_cats", DEFAULT_CATS));
+  const [panel, setPanel] = useState("");
+  const [newItem, setNewItem] = useState({ name: "", price: "", category: DEFAULT_CATS[0], image: "" });
+  const [newCat, setNewCat] = useState("");
+  const [payMethod, setPayMethod] = useState("mpesa");
+  const [mpesaCode, setMpesaCode] = useState("");
+  useEffect(() => save("ms_products", products), [products]);
+  useEffect(() => save("ms_settings", settings), [settings]);
+  useEffect(() => save("ms_cats", cats), [cats]);
+  const [cart, setCart] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pinInput, setPinInput] = useState(["", "", "", "", "", ""]);
+  const [storedPin, setStoredPin] = useState("123456");
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [showPinChange, setShowPinChange] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [customerInfo, setCustomerInfo] = useState({ name: "", location: "", option: "pickup" });
+  const [checkoutMethod, setCheckoutMethod] = useState("whatsapp");
+  const shopPhone = settings.phone;
+  const categories = ["All", ...cats];
+  const setS = (k, v) => setSettings(prev => ({ ...prev, [k]: v }));
+  const emptyPin = ["", "", "", "", "", ""];
+
+  const handlePinDigit = (digit, i) => {
+    const arr = [...pinInput]; arr[i] = digit.slice(-1); setPinInput(arr);
+    if (i < 5 && digit !== "") document.getElementById("pin-input-" + (i + 1))?.focus();
+  };
+  const handleVerifyPin = (e) => {
+    e.preventDefault();
+    if (pinInput.join("") === storedPin) {
+      setIsAdmin(true); setShowPinModal(false); setPinInput(emptyPin); setPinError("");
+    } else {
+      setPinError("Incorrect 6-digit PIN. Access denied."); setPinInput(emptyPin);
+      document.getElementById("pin-input-0")?.focus();
+    }
+  };
+  const handleChangePin = (e) => {
+    e.preventDefault();
+    if (/^\d{6}$/.test(newPin)) { setStoredPin(newPin); setShowPinChange(false); setNewPin(""); alert("Security PIN updated successfully!"); }
+    else alert("PIN must be exactly 6 digits.");
+  };
+
+  const addToCart = (p) => setCart(prev => {
+    const ex = prev.find(i => i.id === p.id);
+    return ex ? prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i) : [...prev, { ...p, qty: 1 }];
+  });
+  const updateQty = (id, d) => setCart(prev => prev.map(i => i.id === id ? (i.qty + d > 0 ? { ...i, qty: i.qty + d } : null) : i).filter(Boolean));
+  const totalBill = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  const buildMessage = () => {
+    const items = cart.map(i => "• " + i.name + " x" + i.qty + " = KES " + (i.price * i.qty)).join("\n");
+    const type = customerInfo.option === "pickup" ? "Store Pickup" : "Home Delivery (" + (customerInfo.location || "Location not specified") + ")";
+    return "*NEW ORDER - MODERN SUPERNET SHOP*\n\n*Customer:* " + (customerInfo.name || "Valued Customer") + "\n*Type:* " + type + "\n\n*Order Details:*\n" + items + "\n\n*TOTAL AMOUNT:* KES " + totalBill + "\n*Payment:* " + (payMethod === "mpesa" ? "M-Pesa (code " + mpesaCode.toUpperCase() + ")" : "Cash on " + (customerInfo.option === "pickup" ? "pickup" : "delivery")) + "\n\nPlease confirm stock and availability!";
+  };
+  const handleCheckout = () => {
+    if (cart.length === 0) return alert("Your order is empty!");
+    if (payMethod === "mpesa" && mpesaCode.trim().length < 8) return alert("Pay via M-Pesa first, then enter the confirmation code from the SMS.");
+    const msg = encodeURIComponent(buildMessage());
+    const phone = shopPhone.replace(/\+/g, "");
+    if (checkoutMethod === "whatsapp") window.open("https://wa.me/" + phone + "?text=" + msg, "_blank");
+    else window.location.href = "sms:" + phone + "?body=" + msg;
+  };
+
+  const handlePhotoUpload = async (id, e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const img = await readImg(file);
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, image: img } : p));
+  };
+  const addItem = e => {
+    e.preventDefault();
+    const price = parseFloat(newItem.price);
+    if (!newItem.name.trim() || isNaN(price)) return alert("Enter an item name and price.");
+    setProducts(prev => [{ id: Date.now(), name: newItem.name.trim(), price, category: newItem.category, emoji: "🛍️", image: newItem.image }, ...prev]);
+    setNewItem({ ...newItem, name: "", price: "", image: "" });
+  };
+  const deleteItem = id => { if (confirm("Delete this item?")) setProducts(prev => prev.filter(p => p.id !== id)); };
+  const addCat = e => { e.preventDefault(); const c = newCat.trim(); if (c && !cats.includes(c)) setCats([...cats, c]); setNewCat(""); };
+  const removeCat = c => { if (products.some(p => p.category === c)) return alert("Move or delete the items in \"" + c + "\" first."); setCats(cats.filter(x => x !== c)); };
+  const addBanner = async e => { const f = e.target.files[0]; if (f) setS("banners", [...settings.banners, await readImg(f)].slice(-6)); };
+  const updatePrice = (id, v) => {
+    const n = parseFloat(v);
+    if (!isNaN(n)) setProducts(prev => prev.map(p => p.id === id ? { ...p, price: n } : p));
+  };
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (activeCategory === "All" || p.category === activeCategory));
+
+  return (
+    <div className="min-h-screen bg-brand-50 text-slate-900 font-sans">
+      <header className="bg-brand-800 text-white shadow-md sticky top-0 z-30 border-b-4 border-sun-400">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight text-sun-400">MODERN SUPERNET SHOP</h1>
+            <p className="text-xs text-brand-100">Welcomed by Mr. &amp; Mrs. Orangi ✨</p>
+          </div>
+          {isAdmin ? (
+            <div className="flex items-center gap-2 bg-brand-800 px-3 py-1.5 rounded-lg border border-brand-600">
+              <Icon n="unlock" className="w-4 h-4 text-brand-300" />
+              <span className="text-xs font-semibold text-brand-100 hidden sm:inline">Manager Mode</span>
+              <button onClick={() => setIsAdmin(false)} className="ml-2 text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded">Lock</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowPinModal(true)} className="flex items-center gap-1.5 bg-brand-800 hover:bg-brand-900 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-100 border border-brand-600 transition">
+              <Icon n="lock" className="w-3.5 h-3.5" /> Admin Access
+            </button>
+          )}
+        </div>
+      </header>
+
+      {isAdmin && (
+        <div className="bg-amber-500 text-amber-950 px-4 py-2 text-xs font-semibold flex justify-between items-center gap-2">
+          <span>🔒 ADMIN MODE: add items, edit shop details, change prices and photos.</span>
+          <button onClick={() => setShowPinChange(true)} className="underline flex items-center gap-1 hover:text-white whitespace-nowrap">
+            <Icon n="key" className="w-3 h-3" /> Change PIN
+          </button>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="max-w-6xl mx-auto px-4 pt-4">
+          <div className="flex gap-2 text-xs font-bold flex-wrap">
+            {[["item", "➕ Add item"], ["shop", "⚙️ Shop details & M-Pesa"], ["cats", "🗂️ Categories"]].map(([k, l]) => (
+              <button key={k} onClick={() => setPanel(panel === k ? "" : k)} className={"px-3 py-2 rounded-lg border " + (panel === k ? "bg-sun-400 border-sun-600 text-brand-900" : "bg-white border-slate-300")}>{l}</button>
+            ))}
+          </div>
+          {panel === "item" && (
+            <form onSubmit={addItem} className="mt-3 bg-white border border-sun-400 rounded-xl p-4 grid sm:grid-cols-2 gap-3 text-xs">
+              <input placeholder="Item name" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} className="p-2 border rounded-lg" />
+              <input type="number" placeholder="Price (KES)" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} className="p-2 border rounded-lg" />
+              <select value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })} className="p-2 border rounded-lg">{cats.map(c => <option key={c}>{c}</option>)}</select>
+              <label className="p-2 border border-dashed rounded-lg cursor-pointer flex items-center gap-2"><Icon n="camera" /> {newItem.image ? "Photo ready ✓" : "Choose photo"}
+                <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files[0]; if (f) setNewItem({ ...newItem, image: await readImg(f) }); }} /></label>
+              <button className="sm:col-span-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg">Save item</button>
+            </form>
+          )}
+          {panel === "shop" && (
+            <div className="mt-3 bg-white border border-sun-400 rounded-xl p-4 grid sm:grid-cols-2 gap-3 text-xs">
+              <label>Opening days<input value={settings.days} onChange={e => setS("days", e.target.value)} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <label>Orders phone (WhatsApp/SMS, e.g. 2547...)<input value={settings.phone} onChange={e => setS("phone", e.target.value.replace(/\D/g, ""))} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <label>Opens at<input type="time" value={settings.open} onChange={e => setS("open", e.target.value)} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <label>Closes at<input type="time" value={settings.close} onChange={e => setS("close", e.target.value)} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <label>M-Pesa number / Till<input value={settings.mpesa} onChange={e => setS("mpesa", e.target.value)} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <label>M-Pesa account name<input value={settings.mpesaName} onChange={e => setS("mpesaName", e.target.value)} className="w-full mt-1 p-2 border rounded-lg" /></label>
+              <div className="sm:col-span-2 flex flex-wrap gap-2 items-center">
+                <span className="font-semibold">Banner photos:</span>
+                {settings.banners.map((b, i) => <span key={i} className="relative"><img src={b} className="w-14 h-10 object-cover rounded" /><button onClick={() => setS("banners", settings.banners.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 bg-chili-500 text-white rounded-full w-4 h-4 leading-none">×</button></span>)}
+                <label className="px-3 py-2 bg-brand-600 text-white rounded-lg font-bold cursor-pointer">+ Add<input type="file" accept="image/*" className="hidden" onChange={addBanner} /></label>
+              </div>
+            </div>
+          )}
+          {panel === "cats" && (
+            <div className="mt-3 bg-white border border-sun-400 rounded-xl p-4 text-xs space-y-3">
+              <form onSubmit={addCat} className="flex gap-2"><input placeholder="New category, e.g. Furniture" value={newCat} onChange={e => setNewCat(e.target.value)} className="flex-1 p-2 border rounded-lg" /><button className="bg-brand-600 text-white font-bold px-4 rounded-lg">Add</button></form>
+              <div className="flex flex-wrap gap-2">{cats.map(c => <span key={c} className="bg-brand-50 border border-brand-200 rounded-full pl-3 pr-1 py-1 flex items-center gap-1">{c}<button onClick={() => removeCat(c)} className="text-chili-500 font-bold px-1">×</button></span>)}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <section className="relative overflow-hidden bg-brand-900 h-48 md:h-60">
+        <div className="absolute inset-0 flex items-center justify-center">
+          {settings.banners.slice(0, 5).map((b, i) => (
+            <img key={i} src={b} alt="" onError={e => { e.currentTarget.style.display = "none"; }} className="absolute w-44 md:w-64 h-32 md:h-44 object-cover rounded-xl border-4 border-white shadow-2xl opacity-70"
+              style={{ left: (i * 20 - 4) + "%", top: (i % 2 ? 38 : 8) + "%", transform: "rotate(" + [-6, 5, -3, 7, -5][i] + "deg)", zIndex: i }} />
+          ))}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-900/90 via-brand-900/60 to-transparent" style={{ zIndex: 10 }} />
+        <div className="relative max-w-6xl mx-auto px-4 h-full flex flex-col justify-center" style={{ zIndex: 20 }}>
+          <h2 className="font-display text-3xl md:text-5xl font-extrabold text-white leading-tight">Fresh stock.<br />Order from home.</h2>
+          <p className="text-sun-300 font-semibold mt-2 text-sm md:text-base">Pay by M-Pesa or cash. Pickup or delivery.</p>
+        </div>
+      </section>
+
+      <main className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <div className="relative">
+              <Icon n="search" className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <input type="text" placeholder="Search maize flour, sugar, tea..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {categories.map(c => (
+                <button key={c} onClick={() => setActiveCategory(c)}
+                  className={"px-3 py-1.5 text-xs rounded-full font-medium whitespace-nowrap transition " + (activeCategory === c ? "bg-brand-700 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>{c}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filtered.map(p => (
+              <div key={p.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between">
+                <div className="relative h-44 bg-slate-100 overflow-hidden">
+                  <ProductImg p={p} />
+                  <span className="absolute top-2 left-2 bg-slate-900/70 text-white text-[10px] px-2 py-0.5 rounded">{p.category}</span>
+                  {isAdmin && (
+                    <label className="absolute bottom-2 right-2 bg-brand-600 hover:bg-brand-700 text-white p-2 rounded-full shadow-lg cursor-pointer">
+                      <Icon n="camera" />
+                      <input type="file" accept="image/*" onChange={e => handlePhotoUpload(p.id, e)} className="hidden" />
+                    </label>
+                  )}
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-sm">{p.name}</h3>
+                    <p className="text-chili-500 font-display font-extrabold text-xl mt-1">KES {p.price}</p>
+                  </div>
+                  {isAdmin && (
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                      <button onClick={() => deleteItem(p.id)} className="text-xs text-chili-500 font-bold mr-auto">Delete</button><span className="text-xs text-slate-500">Edit Price:</span>
+                      <input type="number" value={p.price} onChange={e => updatePrice(p.id, e.target.value)} className="w-20 px-2 py-1 text-xs border rounded bg-amber-50 font-semibold" />
+                    </div>
+                  )}
+                  <button onClick={() => addToCart(p)} className="w-full bg-sun-400 hover:bg-sun-500 text-brand-900 py-2.5 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1.5 active:scale-95">
+                    <Icon n="plus" className="w-3.5 h-3.5" /> Add to Order
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:sticky lg:top-20">
+            <h2 className="text-base font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
+              <Icon n="bag" className="w-4 h-4 text-brand-600" /> Your Shopping Order
+            </h2>
+            {cart.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 space-y-2">
+                <Icon n="bag" className="w-8 h-8 mx-auto" />
+                <p className="text-xs">Your cart is empty. Select items from the catalog!</p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                  {cart.map(i => (
+                    <div key={i.id} className="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-lg">
+                      <div className="flex-1 pr-2">
+                        <p className="font-medium text-slate-700">{i.name}</p>
+                        <p className="text-slate-400">KES {i.price} x {i.qty}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => updateQty(i.id, -1)} className="w-5 h-5 bg-slate-200 rounded font-bold hover:bg-slate-300">-</button>
+                        <span className="w-4 text-center font-semibold">{i.qty}</span>
+                        <button onClick={() => updateQty(i.id, 1)} className="w-5 h-5 bg-slate-200 rounded font-bold hover:bg-slate-300">+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                  <div>
+                    <label className="text-slate-500 font-medium">Your Name:</label>
+                    <input type="text" placeholder="e.g., John Kamau" value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })} className="w-full mt-1 p-2 bg-slate-50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 font-medium">Order Type:</label>
+                    <select value={customerInfo.option} onChange={e => setCustomerInfo({ ...customerInfo, option: e.target.value })} className="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+                      <option value="pickup">Store Pickup</option>
+                      <option value="delivery">Home Delivery</option>
+                    </select>
+                  </div>
+                  {customerInfo.option === "delivery" && (
+                    <div>
+                      <label className="text-slate-500 font-medium">Delivery Address / Landmark:</label>
+                      <input type="text" placeholder="e.g., Near Town Market" value={customerInfo.location} onChange={e => setCustomerInfo({ ...customerInfo, location: e.target.value })} className="w-full mt-1 p-2 bg-slate-50 border rounded-lg" />
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <label className="text-slate-500 font-medium block mb-1">How will you pay?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setPayMethod("mpesa")} className={"p-2 rounded-lg border font-bold " + (payMethod === "mpesa" ? "bg-brand-600 border-brand-700 text-white" : "bg-white border-slate-200 text-slate-600")}>📱 M-Pesa</button>
+                      <button type="button" onClick={() => setPayMethod("cash")} className={"p-2 rounded-lg border font-bold " + (payMethod === "cash" ? "bg-sun-400 border-sun-600 text-brand-900" : "bg-white border-slate-200 text-slate-600")}>💵 Cash</button>
+                    </div>
+                    {payMethod === "mpesa" ? (
+                      <div className="mt-2 p-3 bg-brand-50 border border-brand-200 rounded-lg space-y-2">
+                        <p>Send <b>KES {totalBill}</b> to <b>{settings.mpesa}</b> ({settings.mpesaName}), then enter the code from the M-Pesa SMS.</p>
+                        <input placeholder="M-Pesa code e.g. SHK2A3B4C5" value={mpesaCode} onChange={e => setMpesaCode(e.target.value)} className="w-full p-2 border rounded-lg uppercase" />
+                      </div>
+                    ) : <p className="mt-2 p-3 bg-sun-300/30 rounded-lg">Pay <b>KES {totalBill}</b> in cash on {customerInfo.option === "pickup" ? "pickup" : "delivery"}.</p>}
+                  </div>
+                  <div className="pt-2">
+                    <label className="text-slate-500 font-medium block mb-1">Choose How to Send Order:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setCheckoutMethod("whatsapp")} className={"p-2 rounded-lg border flex items-center justify-center gap-1 font-semibold " + (checkoutMethod === "whatsapp" ? "bg-brand-50 border-brand-500 text-brand-800" : "bg-white border-slate-200 text-slate-600")}>
+                        <Icon n="msg" className="w-3.5 h-3.5" /> WhatsApp
+                      </button>
+                      <button type="button" onClick={() => setCheckoutMethod("sms")} className={"p-2 rounded-lg border flex items-center justify-center gap-1 font-semibold " + (checkoutMethod === "sms" ? "bg-blue-50 border-blue-500 text-blue-800" : "bg-white border-slate-200 text-slate-600")}>
+                        <Icon n="send" className="w-3.5 h-3.5" /> Phone SMS
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold text-slate-600">Total Bill:</span>
+                    <span className="text-lg font-bold text-brand-700">KES {totalBill}</span>
+                  </div>
+                  <button onClick={handleCheckout} className={"w-full py-3 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md active:scale-95 " + (checkoutMethod === "whatsapp" ? "bg-brand-600 hover:bg-brand-700" : "bg-blue-600 hover:bg-blue-700")}>
+                    <Icon n={checkoutMethod === "whatsapp" ? "msg" : "send"} /> Send Order via {checkoutMethod === "whatsapp" ? "WhatsApp" : "Phone SMS"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3 text-xs">
+            <h3 className="font-bold text-slate-800 flex items-center gap-1.5 border-b pb-2">
+              <Icon n="pin" className="w-4 h-4 text-brand-600" /> Shop Location &amp; Hours
+            </h3>
+            <div className="space-y-2 text-slate-600">
+              <p className="flex items-center gap-2"><Icon n="clock" className="w-3.5 h-3.5 text-slate-400" /> Open: {settings.days} ({fmtTime(settings.open)} - {fmtTime(settings.close)})</p>
+              <p className="flex items-center gap-2"><Icon n="phone" className="w-3.5 h-3.5 text-slate-400" /> Call: +{shopPhone} · M-Pesa: {settings.mpesa}</p>
+              <p className="text-slate-500 pt-1 border-t">Welcome to Modern Supernet Shop! Serving our local community with quality groceries and household necessities.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="mt-12 py-6 text-center text-xs text-slate-500 border-t border-slate-200">
+        <p>MODERN SUPERNET SHOP • All Rights Reserved</p>
+        <p className="mt-1 font-semibold text-brand-700">Developed by One Eno @ 2026</p>
+      </footer>
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 text-white p-6 text-center relative">
+              <button onClick={() => setShowPinModal(false)} className="absolute right-4 top-4 text-slate-400 hover:text-white"><Icon n="x" className="w-5 h-5" /></button>
+              <div className="w-12 h-12 bg-brand-500/20 rounded-full flex items-center justify-center mx-auto mb-3 text-brand-400"><Icon n="lock" className="w-6 h-6" /></div>
+              <h3 className="text-lg font-bold">Admin Security Access</h3>
+              <p className="text-xs text-slate-400 mt-1">Enter your 6-digit manager passcode</p>
+            </div>
+            <form onSubmit={handleVerifyPin} className="p-6 space-y-6">
+              {pinError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
+                  <Icon n="alert" className="w-4 h-4 shrink-0" /><span>{pinError}</span>
+                </div>
+              )}
+              <div className="flex justify-center gap-2">
+                {pinInput.map((d, i) => (
+                  <input key={i} id={"pin-input-" + i} type="password" inputMode="numeric" maxLength={1} value={d} onChange={e => handlePinDigit(e.target.value, i)}
+                    className="w-10 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                ))}
+              </div>
+              <div className="space-y-2">
+                <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg text-xs font-bold">Verify Security PIN</button>
+                <p className="text-[11px] text-center text-slate-400">Default PIN for testing: <code className="text-slate-600 font-mono">123456</code></p>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPinChange && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-800 text-sm">Update Security PIN</h3>
+              <button onClick={() => setShowPinChange(false)} className="text-slate-400 hover:text-slate-600"><Icon n="x" /></button>
+            </div>
+            <form onSubmit={handleChangePin} className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-500">New 6-digit passcode:</label>
+                <input type="password" inputMode="numeric" maxLength={6} value={newPin} onChange={e => setNewPin(e.target.value)} placeholder="e.g., 654321" className="w-full mt-1 p-2 border rounded-lg text-center font-mono text-base bg-slate-50" required />
+              </div>
+              <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold py-2 rounded-lg text-xs">Save New Passcode</button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
